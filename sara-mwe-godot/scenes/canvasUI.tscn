@@ -1,0 +1,23 @@
+[gd_scene format=3 uid="uid://bs06jbh5aforf"]
+
+[ext_resource type="Script" uid="uid://ckbke6vqfa5dr" path="res://scripts/gd-scripts/canvas.gd" id="1_2dkc7"]
+[ext_resource type="Script" uid="uid://deg5gm3fb23m6" path="res://scripts/gd-scripts/tool_machine.gd" id="2_e61tw"]
+
+[node name="Control" type="Control" unique_id=102554970]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 480.0
+offset_bottom = 372.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MaCanvas" type="TextureRect" parent="." unique_id=2038390397]
+layout_mode = 0
+offset_right = 42.0
+offset_bottom = 42.0
+script = ExtResource("1_2dkc7")
+
+[node name="ToolMachine" type="Node" parent="MaCanvas" unique_id=940274911]
+script = ExtResource("2_e61tw")

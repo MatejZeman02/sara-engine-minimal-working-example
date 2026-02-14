@@ -1,0 +1,53 @@
+#kernel paint
+
+layout( rgba32f, set = 0, binding = 0 ) uniform image2D canvas;
+layout( push_constant, std430 ) uniform Params
+{
+    vec2 brush_pos;
+    vec2 offset;
+    vec4 color;
+    float radius; // pre-calculated actual_radius
+}
+p;
+
+[numthreads( 8, 8, 1 )] void paint() {
+    // 1. Get absolute coordinates from tile offset
+    ivec2 pixel_coords = ivec2( gl_GlobalInvocationID.xy ) + ivec2( p.offset );
+    vec2 pos = vec2( pixel_coords );
+    ivec2 size = imageSize( canvas );
+
+    // 2. Protect against writing outside the texture
+    if ( pixel_coords.x >= size.x || pixel_coords.y >= size.y )
+    {
+        return;
+    }
+
+    // 3. Calculate distance from the brush center
+    float dist = distance( pos, p.brush_pos );
+
+    // 4. Draw the circle with anti-aliased edges
+    if ( dist < p.radius )
+    {
+        // smoothstep creates a smooth transition from 1.0 (inside) to 0.0 (edge)
+        float aa_alpha = smoothstep( p.radius, p.radius - 2.0, dist );
+
+        // Combine the brush opacity (p.color.a) with the anti-aliased edge
+        float src_a = aa_alpha * p.color.a;
+
+        // Read the current canvas color
+        vec4 original_color = imageLoad( canvas, pixel_coords );
+        float dst_a = original_color.a;
+
+        // quater Porter-Duff blending opacity accumulation
+        float out_a = src_a + 0.25 * dst_a * ( 1.0 - src_a );
+        vec3 out_rgb = vec3( 0.0 );
+
+        if ( out_a > 0.0 )
+        {
+            out_rgb = ( p.color.rgb * src_a + original_color.rgb * dst_a * ( 1.0 - src_a ) ) / out_a;
+        }
+
+        // Write back to VRAM
+        imageStore( canvas, pixel_coords, vec4( out_rgb, out_a ) );
+    }
+}

@@ -14,3 +14,29 @@ export_credentials.cfg
 .mono/
 data_*/
 mono_crash.*.json
+
+# specific ignores
+*.log
+*.tmp
+*.bak
+
+# folders:
+build/
+renders/
+dist/
+.vscode/
+*copy/
+
+# godot exported textures from blender: (packed into .blend files)
+**/textures/
+# blender backup files:
+**/*.blend1
+
+# Matej scripts:
+*matej.sh
+
+# krita backup files:
+**/*.kra~
+**/*.png~
+**/*.jpg~
+**/*.exr~

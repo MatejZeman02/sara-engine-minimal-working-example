@@ -1,0 +1,19 @@
+# .clang-format for shaders
+Language:        Cpp
+BasedOnStyle:    Microsoft # {} on the same level
+
+UseTab:          Never
+TabWidth:        4
+# MaxLineLength:   130 # not sure about the difference
+ColumnLimit:     130 # not sure about the difference
+AllowShortIfStatementsOnASingleLine: true # if ( a > 2 ) a -= 2;
+# AllowShortElseStatementsOnASingleLine: true # else a -= 2;
+
+SortIncludes:    false
+
+# ( a == 0 ) instead of  (a==0)
+SpacesInParens:  Custom
+SpacesInParensOptions:
+  InConditionalStatements: true
+  InEmptyParentheses: false
+  Other: true
