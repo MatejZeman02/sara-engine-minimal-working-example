@@ -58,7 +58,7 @@ func handle_input(event: InputEvent) -> void:
             is_tablet = true
 
         # 2. Apply pressure and gamma curve
-        var current_pressure = raw_pressure if is_tablet else 1.0
+        var current_pressure = raw_pressure if is_tablet else 0.5 # middle default pressure?
         current_pressure = pow(current_pressure, pressure_gamma)
 
         # 3. Calculate dynamic spacing based on the ACTUAL current radius

@@ -26,11 +26,17 @@ func _ready() -> void:
     output_texture.texture_rd_rid = canvas.rid
     self.texture = output_texture
 
+    # --- CHECKERBOARD SETUP ---
     var bg = ColorRect.new()
-    bg.color = Color(0.1, 0.1, 0.1, 1.0)
     bg.set_anchors_preset(Control.PRESET_FULL_RECT)
     bg.show_behind_parent = true
     bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+    var bg_mat = ShaderMaterial.new()
+    bg_mat.shader = load("res://scripts/shaders/checkerboard.gdshader")
+    bg_mat.set_shader_parameter("canvas_size", Vector2(canvas_size))
+    bg.material = bg_mat
+
     add_child(bg)
 
     compute = MaCompute.new("paint")
