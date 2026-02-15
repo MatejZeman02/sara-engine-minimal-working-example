@@ -28,7 +28,7 @@ var compute_shader_kernel_compilations = { }
 var frame_counter = 0
 const CHECK_EVERY_X_FPS = 30
 # custom and normal shaders
-const COMPUTE_SHADER_EXTENSION = "ma-compute"
+const COMPUTE_SHADER_EXTENSION = "gmacs"
 # const COMPUTE_SHADER_EXTENSION = "acompute"
 const SHADER_EXTENSIONS = ["glsl", "shader", COMPUTE_SHADER_EXTENSION]
 
@@ -80,7 +80,7 @@ func compile_shader(_shader_file_path) -> void:
     assert(false, "NOT_IMPLEMENTED: Standard shader compilation is currently not implemented. ERROR: " + _shader_file_path)
 
 
-## Main compilation logic for .ma-compute files
+## Main compilation logic for .gmacs files
 func compile_compute_shader(compute_shader_file_path: String) -> void:
     var compute_shader_name = get_shader_name(compute_shader_file_path)
 

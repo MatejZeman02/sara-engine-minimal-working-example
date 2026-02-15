@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://bs06jbh5aforf"]
 
-[ext_resource type="Script" uid="uid://ckbke6vqfa5dr" path="res://scripts/gd-scripts/canvas.gd" id="1_2dkc7"]
-[ext_resource type="Script" uid="uid://deg5gm3fb23m6" path="res://scripts/gd-scripts/tool_machine.gd" id="2_e61tw"]
+[ext_resource type="Script" uid="uid://ckbke6vqfa5dr" path="res://render/canvas.gd" id="1_2dkc7"]
+[ext_resource type="Script" uid="uid://deg5gm3fb23m6" path="res://tools/tool_machine.gd" id="2_e61tw"]
 
 [node name="Control" type="Control" unique_id=102554970]
 layout_mode = 3

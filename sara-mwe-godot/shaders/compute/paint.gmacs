@@ -7,11 +7,12 @@ layout( push_constant, std430 ) uniform Params
     vec2 brush_pos;
     vec2 offset;
     vec4 color;
-    float radius; // pre-calculated actual_radius
+    float radius;
 }
 p;
 
-[numthreads( 8, 8, 1 )] void paint() {
+[numthreads( 8, 8, 1 )]
+void paint() {
     // 1. Get absolute coordinates from tile offset
     ivec2 pixel_coords = ivec2( gl_GlobalInvocationID.xy ) + ivec2( p.offset );
     vec2 pos = vec2( pixel_coords );

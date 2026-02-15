@@ -14,6 +14,7 @@
 @tool
 extends RefCounted
 
+## .gmacs: Godot Matej-Acerola Compute-Shader
 class_name MaCompute
 
 var kernels = []

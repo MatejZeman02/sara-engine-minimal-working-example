@@ -1,4 +1,4 @@
-# License of custom shader (ma-compute)
+# License of custom shader (.gmacs)
 
 Note for this folder:
 - Content of this folder is released under MIT license stored in root of this folder.
