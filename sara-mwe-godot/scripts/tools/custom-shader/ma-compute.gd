@@ -7,7 +7,7 @@
 # https://github.com/GarrettGunnell/Acerola-Compute/tree/main
 #
 # This software is released under the MIT License.
-# The license file is in /LICENCES/ folder.
+# The license file is in this folder.
 # https://opensource.org/licenses/MIT
 # -------------------------------------------------------------------------
 
