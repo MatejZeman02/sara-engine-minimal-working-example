@@ -35,7 +35,9 @@ const SHADER_EXTENSIONS = ["glsl", "shader", COMPUTE_SHADER_EXTENSION]
 
 func _init() -> void:
     rd = RenderingServer.get_rendering_device()
-    assert(rd != null, "RenderingDevice must be initialized")
+    # Abort initialization silently during headless export/project scanning
+    if rd == null:
+        return
     find_files("res://")
 
     # Compile standard shaders (if any)
