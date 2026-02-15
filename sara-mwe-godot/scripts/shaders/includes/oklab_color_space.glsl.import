@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bn0dxht7k7y31"
+path="res://.godot/imported/oklab_color_space.glsl-acd7ef61120bed580cb8e2475202d344.res"
+
+[deps]
+
+source_file="res://scripts/shaders/includes/oklab_color_space.glsl"
+dest_files=["res://.godot/imported/oklab_color_space.glsl-acd7ef61120bed580cb8e2475202d344.res"]
+
+[params]
+

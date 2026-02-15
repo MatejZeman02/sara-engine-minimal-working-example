@@ -16,7 +16,7 @@ func setup_default_document(size: Vector2i) -> void:
     bg_layer.name = "Background"
     add_child(bg_layer)
     bg_layer.setup(canvas_size)
-    # Note: 0.5 in Linear space is quite bright. For perceptual mid-gray, we might prefer .5^3
+    # 0.5 in Linear space is quite bright. For perceptual mid-gray, we might prefer .5^3
     bg_layer.fill(Color(0.5, 0.5, 0.5, 1.0))
 
     # Paint Layer (Fully Transparent)

@@ -77,7 +77,7 @@ func get_shader_name(file_path: String) -> String:
 
 ## Placeholder for standard .glsl vertex/fragment shaders
 func compile_shader(_shader_file_path) -> void:
-    assert(false, "TODO: Standard shader compilation is currently not implemented. ERROR: " + _shader_file_path)
+    assert(false, "NOT_IMPLEMENTED: Standard shader compilation is currently not implemented. ERROR: " + _shader_file_path)
 
 
 ## Main compilation logic for .ma-compute files
@@ -87,9 +87,12 @@ func compile_compute_shader(compute_shader_file_path: String) -> void:
     var raw_text = _load_shader_file(compute_shader_file_path)
     var clean_text = _remove_comments(raw_text)
     clean_text = _process_includes(clean_text, compute_shader_file_path)
-
     var kernels = _extract_kernels(clean_text)
-    assert(!kernels.is_empty(), "No kernels found in: " + compute_shader_file_path)
+
+    # No kernels? -> include file, then skip
+    if kernels.is_empty():
+        print("Include file: " + get_shader_name(compute_shader_file_path))
+        return
 
     _prepare_kernel_rids(compute_shader_name)
 
@@ -113,44 +116,54 @@ func _remove_comments(raw_text: String) -> String:
     return comment_regex.sub(raw_text, "", true)
 
 
-## Process #include directives and replace with file content
+## Process '#include' directives and replace with file content recursively
 func _process_includes(clean_text: String, compute_shader_file_path: String) -> String:
     var include_regex = RegEx.new()
     include_regex.compile("#include\\s+\"([^\"]+)\"")
 
+    # Array to track included files to prevent circular dependencies
+    # and duplicate code insertions (simulates C++ #pragma once)
+    var already_included: Array = []
+
     var include_match = include_regex.search(clean_text)
     while include_match != null:
         var include_filename = include_match.get_string(1)
-        var include_path = _find_include_file(include_filename, compute_shader_file_path)
+        include_filename += "." + COMPUTE_SHADER_EXTENSION # Ensure correct extension
 
-        var include_file = FileAccess.open(include_path, FileAccess.READ)
-        assert(include_file != null, "Failed to include file: " + include_path)
-        var include_content = include_file.get_as_text()
+        var exact_match_str = include_match.get_string(0)
 
-        clean_text = clean_text.replace(include_match.get_string(0), include_content)
+        if include_filename in already_included:
+            push_warning("Multiple include: " + include_filename + " in " + compute_shader_file_path)
+            # We already included this file in the current compilation chain.
+            # Just remove the duplicate include directive.
+            clean_text = clean_text.replace(exact_match_str, "")
+        else:
+            already_included.append(include_filename)
+
+            var include_path = _find_include_file(include_filename, compute_shader_file_path)
+            var include_file = FileAccess.open(include_path, FileAccess.READ)
+            assert(include_file != null, "Failed to include file: " + include_path)
+
+            # Get text and remove comments from the included file before inserting
+            var include_content = include_file.get_as_text()
+            include_content = _remove_comments(include_content)
+
+            # Replace the #include directive with the actual file content
+            clean_text = clean_text.replace(exact_match_str, include_content)
+
+        # Search again in the updated text.
+        # This automatically finds nested includes inside the newly pasted `include_content`!
         include_match = include_regex.search(clean_text)
 
     return clean_text
 
 
-## Find include file in same directory or subdirectories
-func _find_include_file(include_filename: String, compute_shader_file_path: String) -> String:
-    var search_dir = compute_shader_file_path.get_base_dir()
-
-    var same_dir_path = search_dir.path_join(include_filename)
-    if ResourceLoader.exists(same_dir_path):
-        return same_dir_path
-
-    var dir = DirAccess.open(search_dir)
-    if dir:
-        dir.list_dir_begin()
-        var file_name = dir.get_next()
-        while file_name != "":
-            if dir.current_is_dir() and not file_name.begins_with("."):
-                var subdir_path = search_dir.path_join(file_name).path_join(include_filename)
-                if ResourceLoader.exists(subdir_path):
-                    return subdir_path
-            file_name = dir.get_next()
+## Find include file by searching the already-populated paths array
+func _find_include_file(include_filename: String, _compute_shader_file_path: String) -> String:
+    for path in compute_shader_file_paths:
+        # Note: Requires include filenames to be unique across the project.
+        if path.ends_with(include_filename):
+            return path
 
     assert(false, "Include file not found: " + include_filename)
     return ""
@@ -259,25 +272,22 @@ func _process(_delta: float) -> void:
     if frame_counter % CHECK_EVERY_X_FPS != 0:
         return
 
+    var needs_recompile = false
+
+    # Check if any file (including includes) has changed
     for file_path in compute_shader_file_paths:
-        # Check if file content has changed since last cache update
         if FileAccess.open(file_path, FileAccess.READ) == null:
-            # Someone is currently editing the file
             continue
+
         var current_code = FileAccess.open(file_path, FileAccess.READ).get_as_text()
-        assert(shader_code_cache.has(file_path), "File path must exist in shader code cache")
-
         if shader_code_cache[file_path] != current_code:
-            var shader_name = get_shader_name(file_path)
-            assert(compute_shader_kernel_compilations.has(shader_name), "Shader name must exist in compilations")
+            shader_code_cache[file_path] = current_code
+            needs_recompile = true
 
-            # Clear old RIDs
-            for kernel in compute_shader_kernel_compilations[shader_name]:
-                if kernel.is_valid():
-                    rd.free_rid(kernel)
-            compute_shader_kernel_compilations[shader_name].clear()
-
-            # Recompile
+    # If something changed, run everything through the compiler
+    # (Files without kernels are silently skipped due to the change in step 1)
+    if needs_recompile:
+        for file_path in compute_shader_file_paths:
             compile_compute_shader(file_path)
 
 
