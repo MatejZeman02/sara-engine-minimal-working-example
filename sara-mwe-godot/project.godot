@@ -21,6 +21,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [autoload]
 
 GlobalShaderCompiler="*uid://blddn5yif2hla"
+EventBus="*uid://hxrk67kdnw8d"
 
 [display]
 

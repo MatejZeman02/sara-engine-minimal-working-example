@@ -33,11 +33,11 @@ func handle_input(event: InputEvent) -> void:
 
         var new_scale = zoom_start_scale * zoom_factor
 
-        # 1. Najdeme střed okna (fokální bod)
+        # find window center in screen coordinates
         var screen_center = canvas.get_viewport_rect().size / 2.0
-        # 2. Vypočítáme, jakému pixelu na textuře tento střed odpovídá
+        # which pixel is currently at the center in canvas local coordinates?
         var local_center = (screen_center - zoom_start_pos) / zoom_start_scale
-        # 3. Přepočítáme novou pozici plátna tak, aby onen pixel zůstal ve středu
+        # recalculate position
         var new_pos = screen_center - (local_center * new_scale)
 
         canvas.scale = new_scale

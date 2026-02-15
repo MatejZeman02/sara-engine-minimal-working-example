@@ -13,21 +13,21 @@ p;
 
 [numthreads( 8, 8, 1 )]
 void paint() {
-    // 1. Get absolute coordinates from tile offset
+    // Get absolute coordinates from tile offset
     ivec2 pixel_coords = ivec2( gl_GlobalInvocationID.xy ) + ivec2( p.offset );
     vec2 pos = vec2( pixel_coords );
     ivec2 size = imageSize( canvas );
 
-    // 2. Protect against writing outside the texture
+    // Protect against writing outside the texture
     if ( pixel_coords.x >= size.x || pixel_coords.y >= size.y )
     {
         return;
     }
 
-    // 3. Calculate distance from the brush center
+    // Calculate distance from the brush center
     float dist = distance( pos, p.brush_pos );
 
-    // 4. Draw the circle with anti-aliased edges
+    // Draw the circle with anti-aliased edges
     if ( dist < p.radius )
     {
         // smoothstep creates a smooth transition from 1.0 (inside) to 0.0 (edge)
