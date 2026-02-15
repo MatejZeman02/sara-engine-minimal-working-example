@@ -38,8 +38,8 @@ p;
         vec4 original_color = imageLoad( canvas, pixel_coords );
         float dst_a = original_color.a;
 
-        // quater Porter-Duff blending opacity accumulation
-        float out_a = src_a + 0.25 * dst_a * ( 1.0 - src_a );
+        // Porter-Duff blending opacity accumulation
+        float out_a = src_a + dst_a * ( 1.0 - src_a );
         vec3 out_rgb = vec3( 0.0 );
 
         if ( out_a > 0.0 )
