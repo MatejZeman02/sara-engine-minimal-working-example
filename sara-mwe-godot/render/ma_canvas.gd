@@ -10,6 +10,9 @@ var canvas: MaTexture
 var document: MaDocument
 @export var checkerboard_shader: Shader = preload("res://shaders/canvas/checkerboard.gdshader")
 
+# Flag to prevent compositor spam during fast brush strokes
+var _needs_composite: bool = false
+
 
 func _ready() -> void:
     Engine.max_fps = 100
@@ -45,7 +48,8 @@ func _ready() -> void:
     add_child(document)
     document.setup_default_document(canvas_size)
 
-    EventBus.canvas_needs_composite.connect(composite_all_layers)
+    # Connect the signal to the new, lightweight function
+    EventBus.canvas_needs_composite.connect(_request_composite)
 
 
 func _center_canvas() -> void:
@@ -55,13 +59,24 @@ func _center_canvas() -> void:
     position = (window_size - (Vector2(canvas_size) * scale_factor)) / 2.0
 
 
+## raise flag to composite
+func _request_composite() -> void:
+    _needs_composite = true
+
+
+func _process(_delta: float) -> void:
+    if _needs_composite:
+        composite_all_layers()
+        _needs_composite = false
+
+
 func composite_all_layers() -> void:
     var rd = RenderingServer.get_rendering_device()
     rd.texture_clear(canvas.rid, Color.TRANSPARENT, 0, 1, 0, 1)
 
     var compositor = MaCompute.new("composite")
 
-    # Iterate through the Document's layers, not the Canvas's children
+    # Iterate through the Document's standard layers
     for child in document.get_children():
         if child is MaLayer:
             if not child.is_visible:
@@ -77,6 +92,19 @@ func composite_all_layers() -> void:
             var groups_y = int(ceil(canvas_size.y / 8.0))
 
             compositor.dispatch(0, groups_x, groups_y, 1)
+
+    # Add the active Stroke Buffer on top of everything while drawing
+    if document.stroke_layer != null:
+        compositor.set_texture(0, canvas.rid)
+        compositor.set_texture(1, document.stroke_layer.texture.rid)
+
+        var push_data = PackedFloat32Array([document.stroke_opacity, 0.0, 0.0, 0.0])
+        compositor.set_push_constant_float_array(push_data)
+
+        var groups_x = int(ceil(canvas_size.x / 8.0))
+        var groups_y = int(ceil(canvas_size.y / 8.0))
+
+        compositor.dispatch(0, groups_x, groups_y, 1)
 
     queue_redraw()
 

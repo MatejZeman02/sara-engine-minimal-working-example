@@ -198,6 +198,7 @@ func _compile_kernel(k_name: String, clean_text: String, compute_shader_name: St
 
     var final_source = _assemble_glsl(numthreads, code)
     var rid = _compile_spirv(final_source, k_name)
+    assert(rid.is_valid(), "Failed to compile kernel: " + k_name + " from shader: " + compute_shader_name)
 
     compute_shader_kernel_compilations[compute_shader_name].append(rid)
     _print_kernel_compiled(k_name, compute_shader_name)

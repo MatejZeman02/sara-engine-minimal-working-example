@@ -42,10 +42,20 @@ func _init(_shader_name: String) -> void:
 # --- Public API ---
 
 
-# Sets push constants from a float array (useful for sending vectors/colors)
+# Sets push constants from a float array with padding to ensure 16-byte alignment
 func set_push_constant_float_array(data: PackedFloat32Array) -> void:
     assert(not data.is_empty(), "Float array cannot be empty")
-    push_constant = data.to_byte_array()
+    # Vulkan (std430) aligns blocks according to vec4 (16 bytes = 4 floats)
+    var floats_count = data.size()
+    var remainder = floats_count % 4
+
+    var aligned_data = data
+    #  if the data size is not a multiple of 4, pad with zeros
+    if remainder != 0:
+        aligned_data = data.duplicate()
+        aligned_data.resize(floats_count + (4 - remainder))
+
+    push_constant = aligned_data.to_byte_array()
 
 
 # Sets push constants from a raw byte array
@@ -175,5 +185,5 @@ func _notification(what):
         for rid in uniform_buffer_id_cache.values():
             if rid.is_valid():
                 rd.free_rid(rid)
-        if uniform_set_gpu_id.is_valid():
-            rd.free_rid(uniform_set_gpu_id)
+        # if uniform_set_gpu_id.is_valid(): # throws error otherwise
+        #     rd.free_rid(uniform_set_gpu_id)
