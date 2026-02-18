@@ -4,6 +4,7 @@
 ## Pareto principle (80/20 core) features:
 - [x] Paint brush
 - [x] Pressure Sensitivity (tablet/pen features)
+- [ ] UI sliders/buttons
 - [ ] Eraser mode
 - [ ] Eyedropper/color picker
 - [x] Pan and Zoom
@@ -24,12 +25,13 @@
 
 ### Long-term:
 - color spaces on gpu
-- export/import (class Image)
+- export/import (jpg/png/exr/sad - custom sara document file)
 - unlimited canvas shape and size
 - UI buttons/sliders
 - blending modes/locking layers
 - make brush parameters editable by user
 - noise textures to brush shape
+- mask layer (or just layer on erase mode?)
 
 ## Possibly:
 - Possible 3rd party libraries: OpenCV, LittleCMS, ...?

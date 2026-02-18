@@ -1,40 +1,53 @@
 #kernel composite
 
-// The master canvas (serves as both background input and final output)
-layout( rgba32f, set = 0, binding = 0 ) uniform image2D master_canvas;
-// The current layer we are blending on top
-layout( rgba32f, set = 0, binding = 1 ) uniform image2D layer_texture;
+// Both textures are in set 0, differentiated by binding 0 and 1
+layout( rgba32f, set = 0, binding = 0 ) uniform image2D canvas;
+layout( rgba32f, set = 0, binding = 1 ) uniform image2D chunk;
 
-layout( push_constant, std430 ) uniform PushConstants
+layout( push_constant, std430 ) uniform Params
 {
-    float fg_opacity;
-}
-pc;
+    vec2 offset;
+    float opacity;
+} p;
 
 [numthreads( 8, 8, 1 )] void composite() {
-    ivec2 pixel_coords = ivec2( gl_GlobalInvocationID.xy );
-    ivec2 size = imageSize( master_canvas );
+    // Local coordinates inside the 256x256 chunk
+    ivec2 chunk_coords = ivec2( gl_GlobalInvocationID.xy );
 
-    if ( pixel_coords.x >= size.x || pixel_coords.y >= size.y )
+    // Global coordinates on the final canvas
+    ivec2 canvas_coords = chunk_coords + ivec2( p.offset );
+
+    ivec2 canvas_size = imageSize( canvas );
+    ivec2 chunk_size = imageSize( chunk );
+
+    // Out of bounds check for both the chunk and the canvas
+    if ( chunk_coords.x >= chunk_size.x || chunk_coords.y >= chunk_size.y )
+    {
+        return;
+    }
+    if ( canvas_coords.x >= canvas_size.x || canvas_coords.y >= canvas_size.y || canvas_coords.x < 0 || canvas_coords.y < 0 )
     {
         return;
     }
 
-    vec4 bg = imageLoad( master_canvas, pixel_coords );
-    vec4 fg = imageLoad( layer_texture, pixel_coords );
+    vec4 src = imageLoad( chunk, chunk_coords );
+    if ( src.a <= 0.0 )
+    {
+        return; // Optimization: skip empty pixels
+    }
 
-    // Apply the layer's opacity to the foreground alpha
-    float src_a = fg.a * pc.fg_opacity;
-    float dst_a = bg.a;
+    src.a *= p.opacity;
 
-    // Standard Porter-Duff 'Over' blending
-    float out_a = src_a + dst_a * ( 1.0 - src_a );
+    vec4 dst = imageLoad( canvas, canvas_coords );
+
+    // Standard Porter-Duff Over blending
+    float out_a = src.a + dst.a * ( 1.0 - src.a );
     vec3 out_rgb = vec3( 0.0 );
 
     if ( out_a > 0.0 )
     {
-        out_rgb = ( fg.rgb * src_a + bg.rgb * dst_a * ( 1.0 - src_a ) ) / out_a;
+        out_rgb = ( src.rgb * src.a + dst.rgb * dst.a * ( 1.0 - src.a ) ) / out_a;
     }
 
-    imageStore( master_canvas, pixel_coords, vec4( out_rgb, out_a ) );
+    imageStore( canvas, canvas_coords, vec4( out_rgb, out_a ) );
 }

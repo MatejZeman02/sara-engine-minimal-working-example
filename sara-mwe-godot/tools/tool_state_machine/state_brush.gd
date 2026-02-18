@@ -61,6 +61,9 @@ func reset() -> void:
     last_pressure = 0.0
     leftover_distance = 0.0
     is_drawing = false
+    
+    # Textures of scratchpad were deleted by document, clear compute wrapper
+    compute = MaCompute.new("paint")
 
 
 ## Converts raw hardware screen coordinates directly to texture pixels
@@ -163,43 +166,76 @@ func _stamp_brush(pos: Vector2, pressure: float) -> void:
     _dispatch_brush(pos, actual_radius, stroke_color)
 
 
-## The brush calculates its own bounding box and writes directly to the active layer!
+## The brush calculates its own bounding box, identifies intersecting chunks,
+## and writes directly to those chunks in the active stroke layer!
 func _dispatch_brush(pos: Vector2, actual_radius: float, stroke_color: Color) -> void:
     var doc = canvas.document
     var r = actual_radius + 2.0
     var rect = Rect2(pos.x - r, pos.y - r, r * 2, r * 2)
 
-    var start_x = max(0, floor(rect.position.x / 8.0) * 8.0)
-    var start_y = max(0, floor(rect.position.y / 8.0) * 8.0)
-    var end_x = min(doc.canvas_size.x, ceil(rect.end.x / 8.0) * 8.0)
-    var end_y = min(doc.canvas_size.y, ceil(rect.end.y / 8.0) * 8.0)
+    # Calculate integer coordinates of the chunks this rect overlaps
+    var start_chunk_x = int(floor(rect.position.x / doc.stroke_layer.CHUNK_SIZE))
+    var start_chunk_y = int(floor(rect.position.y / doc.stroke_layer.CHUNK_SIZE))
+    var end_chunk_x = int(floor(rect.end.x / doc.stroke_layer.CHUNK_SIZE))
+    var end_chunk_y = int(floor(rect.end.y / doc.stroke_layer.CHUNK_SIZE))
 
-    var width = end_x - start_x
-    var height = end_y - start_y
-    if width <= 0 or height <= 0:
-        return
+    # Iterate over every chunk the brush dab touches
+    for cx in range(start_chunk_x, end_chunk_x + 1):
+        for cy in range(start_chunk_y, end_chunk_y + 1):
+            var grid_pos = Vector2i(cx, cy)
 
-    # Pack the payload into std430 alignment (chunks of 4)
-    var data = PackedFloat32Array(
-        [
-            pos.x,
-            pos.y,
-            start_x,
-            start_y,
-            stroke_color.r,
-            stroke_color.g,
-            stroke_color.b,
-            stroke_color.a,
-            actual_radius,
-            hardness.raw(),
-            hardness.gamma_inv(),
-            flow.transf(),
-        ],
-    )
+            # The global offset of the current chunk in pixels
+            var chunk_offset_x = cx * doc.stroke_layer.CHUNK_SIZE
+            var chunk_offset_y = cy * doc.stroke_layer.CHUNK_SIZE
 
-    compute.set_texture(0, doc.stroke_layer.texture.rid)
-    compute.set_push_constant_float_array(data)
-    compute.dispatch(0, int(width / 8.0), int(height / 8.0), 1)
+            # Calculate the intersection of the brush Rect2 and the Chunk's Rect2
+            # This tells us exactly which part of the chunk we need to calculate
+            var chunk_rect = Rect2(chunk_offset_x, chunk_offset_y, doc.stroke_layer.CHUNK_SIZE, doc.stroke_layer.CHUNK_SIZE)
+            var overlap = rect.intersection(chunk_rect)
+
+            if overlap.size.x <= 0 or overlap.size.y <= 0:
+                continue
+
+            # Snap to 8x8 pixel blocks for optimal compute shader threading
+            var render_start_x = floor(overlap.position.x / 8.0) * 8.0
+            var render_start_y = floor(overlap.position.y / 8.0) * 8.0
+            var render_end_x = ceil(overlap.end.x / 8.0) * 8.0
+            var render_end_y = ceil(overlap.end.y / 8.0) * 8.0
+
+            var width = render_end_x - render_start_x
+            var height = render_end_y - render_start_y
+
+            if width <= 0 or height <= 0:
+                continue
+
+            # Fetch or create the specific chunk texture in VRAM
+            var chunk_texture = doc.stroke_layer.get_or_create_chunk(grid_pos)
+
+            # Pack the payload (MaCompute handles the 16-byte alignment automatically)
+            # Notice we pass the chunk's offset into the shader so it calculates distance correctly!
+            # Pack the payload
+            var data = PackedFloat32Array(
+                [
+                    pos.x - chunk_offset_x, # local position
+                    pos.y - chunk_offset_y,
+                    render_start_x - chunk_offset_x, 
+                    render_start_y - chunk_offset_y,
+                    stroke_color.r,
+                    stroke_color.g,
+                    stroke_color.b,
+                    stroke_color.a,
+                    actual_radius,
+                    hardness.raw(),
+                    hardness.gamma_inv(),
+                    flow.transf(),
+                ],
+            )
+
+            compute.set_texture(0, chunk_texture.rid)
+            compute.set_push_constant_float_array(data)
+
+            # Dispatch only for the required overlapping region within this chunk
+            compute.dispatch(0, int(width / 8.0), int(height / 8.0), 1)
 
     # Tell the rest of the application that the VRAM has changed
     EventBus.canvas_needs_composite.emit()

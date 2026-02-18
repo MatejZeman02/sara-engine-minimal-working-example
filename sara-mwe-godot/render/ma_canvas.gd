@@ -75,36 +75,45 @@ func composite_all_layers() -> void:
     rd.texture_clear(canvas.rid, Color.TRANSPARENT, 0, 1, 0, 1)
 
     var compositor = MaCompute.new("composite")
+    var chunk_size = MaLayer.CHUNK_SIZE
 
+    # Dispatch specifically for the 256x256 chunk (256 / 8 = 32 groups)
+    var groups_x = int(ceil(chunk_size / 8.0))
+    var groups_y = groups_x
     # Iterate through the Document's standard layers
     for child in document.get_children():
         if child is MaLayer:
             if not child.is_visible:
                 continue
 
-            compositor.set_texture(0, canvas.rid)
-            compositor.set_texture(1, child.texture.rid)
+            # Composite each chunk of the layer
+            for grid_pos in child.chunks:
+                var chunk = child.chunks[grid_pos]
+                compositor.set_texture(0, canvas.rid)
+                compositor.set_texture(1, chunk.rid)
 
-            var push_data = PackedFloat32Array([child.opacity, 0.0, 0.0, 0.0])
-            compositor.set_push_constant_float_array(push_data)
+                var offset_x = grid_pos.x * chunk_size
+                var offset_y = grid_pos.y * chunk_size
 
-            var groups_x = int(ceil(canvas_size.x / 8.0))
-            var groups_y = int(ceil(canvas_size.y / 8.0))
-
-            compositor.dispatch(0, groups_x, groups_y, 1)
+                # var push_data = PackedFloat32Array([child.opacity, offset_x, offset_y, 0.0])
+                var push_data = PackedFloat32Array([offset_x, offset_y, child.opacity, 0.0])
+                compositor.set_push_constant_float_array(push_data)
+                compositor.dispatch(0, groups_x, groups_y, 1)
 
     # Add the active Stroke Buffer on top of everything while drawing
     if document.stroke_layer != null:
-        compositor.set_texture(0, canvas.rid)
-        compositor.set_texture(1, document.stroke_layer.texture.rid)
+        for grid_pos in document.stroke_layer.chunks:
+            var chunk = document.stroke_layer.chunks[grid_pos]
+            compositor.set_texture(0, canvas.rid)
+            compositor.set_texture(1, chunk.rid)
 
-        var push_data = PackedFloat32Array([document.stroke_opacity, 0.0, 0.0, 0.0])
-        compositor.set_push_constant_float_array(push_data)
+            var offset_x = grid_pos.x * chunk_size
+            var offset_y = grid_pos.y * chunk_size
 
-        var groups_x = int(ceil(canvas_size.x / 8.0))
-        var groups_y = int(ceil(canvas_size.y / 8.0))
-
-        compositor.dispatch(0, groups_x, groups_y, 1)
+            # var push_data = PackedFloat32Array([document.stroke_opacity, offset_x, offset_y, 0.0])
+            var push_data = PackedFloat32Array([offset_x, offset_y, document.stroke_opacity, 0.0])
+            compositor.set_push_constant_float_array(push_data)
+            compositor.dispatch(0, groups_x, groups_y, 1)
 
     queue_redraw()
 
