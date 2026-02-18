@@ -15,8 +15,19 @@ compatibility/default_parent_skeleton_in_mesh_instance_3d=true
 [application]
 
 config/name="mwe-sara"
+config/description="GPU-accelerated digital painting engine."
+config/version="alpha"
 run/main_scene="uid://bs06jbh5aforf"
 config/features=PackedStringArray("4.6", "Forward Plus")
+run/max_fps=100
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/stretch_mode=0
+boot_splash/image="uid://cwb1h56ls8u81"
+config/icon="uid://b0e2xmfkxcw2"
+
+[audio]
+
+buses/default_bus_layout="res://geditor/default_bus_layout.tres"
 
 [autoload]
 
