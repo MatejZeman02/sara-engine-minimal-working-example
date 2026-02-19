@@ -83,53 +83,45 @@ func composite_all_layers() -> void:
     var chunk_size = float(MaLayer.CHUNK_SIZE)
     var groups = int(ceil(chunk_size / 8.0))
 
-    # viewport culling math:
+    # Viewport culling math:
     # Determine the rectangle currently visible to the user (in local canvas pixels)
     var screen_rect = get_viewport_rect()
     var visible_rect = get_global_transform().affine_inverse() * screen_rect
 
-    # Iterate through the Document's standard layers
-    for child in document.get_children():
-        if not child is MaLayer or not child.visible:
+    # --- THE 4-TIER STACK ---
+    # We strictly render only these 4 layers in order.
+    # Bottom and Top caches already have the individual layer opacities baked in.
+    var tiers = [
+        { "layer": document.bottom_cache, "opacity": 1.0 },
+        { "layer": document.active_layer, "opacity": document.active_layer.opacity if document.active_layer else 1.0 },
+        { "layer": document.stroke_layer, "opacity": document.stroke_opacity },
+        { "layer": document.top_cache, "opacity": 1.0 },
+    ]
+
+    for tier in tiers:
+        var current_layer = tier["layer"]
+        var current_opacity = tier["opacity"]
+
+        if current_layer == null or not current_layer.visible:
             continue
 
-        for grid_pos in child.chunks:
+        for grid_pos in current_layer.chunks:
             var offset_x = grid_pos.x * chunk_size
             var offset_y = grid_pos.y * chunk_size
 
-            # viewport culling
+            # Viewport culling
             var chunk_rect = Rect2(offset_x, offset_y, chunk_size, chunk_size)
             if not visible_rect.intersects(chunk_rect):
-                continue # chunk off-screen
+                continue # Chunk off-screen
 
-            var chunk = child.chunks[grid_pos]
+            var chunk = current_layer.chunks[grid_pos]
             compositor.set_texture(0, canvas.rid)
             compositor.set_texture(1, chunk.rid)
 
-            var push_data = PackedFloat32Array([offset_x, offset_y, child.opacity, 0.0])
+            var push_data = PackedFloat32Array([offset_x, offset_y, current_opacity, 0.0])
             compositor.set_push_constant_float_array(push_data)
 
-            # Automatically begins and ends the queue per chunk
-            compositor.dispatch(0, groups, groups, 1)
-
-    # Add the active Stroke Buffer on top
-    if document.stroke_layer != null:
-        for grid_pos in document.stroke_layer.chunks:
-            var offset_x = grid_pos.x * chunk_size
-            var offset_y = grid_pos.y * chunk_size
-
-            var chunk_rect = Rect2(offset_x, offset_y, chunk_size, chunk_size)
-            if not visible_rect.intersects(chunk_rect):
-                continue
-
-            var chunk = document.stroke_layer.chunks[grid_pos]
-            compositor.set_texture(0, canvas.rid)
-            compositor.set_texture(1, chunk.rid)
-
-            var push_data = PackedFloat32Array([offset_x, offset_y, document.stroke_opacity, 0.0])
-            compositor.set_push_constant_float_array(push_data)
-
-            # Automatically begins and ends the queue per chunk
+            # Safe dispatch: Automatically begins and ends the queue per chunk
             compositor.dispatch(0, groups, groups, 1)
 
     queue_redraw()
