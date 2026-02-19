@@ -9,7 +9,7 @@ const CHUNK_SIZE: int = 256
 var chunks: Dictionary = { }
 
 ## Whether the layer is visible
-@export var is_visible: bool = true
+@export var visible: bool = true
 
 ## The opacity of the layer
 @export_range(0.0, 1.0) var opacity: float = 1.0

@@ -1,7 +1,8 @@
 # TODO:
 - the minimal working example of a painting software:
 
-## Pareto principle (80/20 core) features:
+## Features
+### Pareto principle (80/20 core) features:
 - [x] Paint brush
 - [x] Pressure Sensitivity (tablet/pen features)
 - [ ] UI sliders/buttons
@@ -18,6 +19,7 @@
 - [ ] selection tool
 - [ ] Transform Mesh & Perspective Warping
 - [ ] Color Matching & Correction (Ctrl U/B)
+- [ ] document menu/resize/crop
 - [ ] liquify tool
 - [ ] Symmetry/Mirror
 - [ ] Canvas rotation
@@ -33,7 +35,7 @@
 - noise textures to brush shape
 - mask layer (or just layer on erase mode?)
 
-## Possibly:
+### Possibly:
 - Possible 3rd party libraries: OpenCV, LittleCMS, ...?
 - To integrate c++:
   - Create a C++ wrapper that uses godot-cpp bindings.
@@ -41,3 +43,7 @@
   - Write conversion functions between Godot::Image (or Texture) and cv::Mat.
   - Compile it as a shared library (.so). Godot will then see it as a native Node or Resource.
   - Also compile to .dll for windows.
+
+## Bugs:
+- icons not showing when pointer not on canvas, but outside.
+

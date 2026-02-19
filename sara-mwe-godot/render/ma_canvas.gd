@@ -83,7 +83,7 @@ func composite_all_layers() -> void:
     # Iterate through the Document's standard layers
     for child in document.get_children():
         if child is MaLayer:
-            if not child.is_visible:
+            if not child.visible:
                 continue
 
             # Composite each chunk of the layer
