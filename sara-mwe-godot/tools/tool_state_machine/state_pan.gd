@@ -23,3 +23,5 @@ func handle_input(event: InputEvent) -> void:
 
     elif event is InputEventMouseMotion and is_panning:
         canvas.position += event.relative
+        # trigger re-render on next frame
+        EventBus.canvas_needs_composite.emit()

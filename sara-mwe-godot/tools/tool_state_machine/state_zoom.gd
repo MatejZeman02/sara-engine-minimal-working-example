@@ -36,12 +36,14 @@ func handle_input(event: InputEvent) -> void:
 
         var new_scale = zoom_start_scale * zoom_factor
 
-        # find window center in screen coordinates
+        # Find window center in screen coordinates
         var screen_center = canvas.get_viewport_rect().size / 2.0
-        # which pixel is currently at the center in canvas local coordinates?
+        # Which pixel is currently at the center in canvas local coordinates
         var local_center = (screen_center - zoom_start_pos) / zoom_start_scale
-        # recalculate position
+        # Recalculate position
         var new_pos = screen_center - (local_center * new_scale)
 
         canvas.scale = new_scale
         canvas.position = new_pos
+        # Re-composite to render chunks that are newly visible due to scaling
+        EventBus.canvas_needs_composite.emit()

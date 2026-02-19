@@ -35,6 +35,7 @@ var uniform_buffer_cache = { }
 var uniform_buffer_id_cache = { }
 
 var refresh_uniforms = true
+var _active_compute_list: int = -1
 
 
 func _init(_shader_name: String) -> void:
@@ -77,54 +78,56 @@ func set_texture(binding: int, texture_rid: RID) -> void:
     u.add_id(texture_rid)
     _cache_uniform(u)
 
+# --- BATCHING API ---
 
-# Dispatches the compute shader workload to the GPU
-func dispatch(kernel_index: int, x_groups: int, y_groups: int, z_groups: int) -> void:
-    assert(kernel_index >= 0, "Kernel index cannot be negative")
-    assert(x_groups > 0, "X groups must be greater than 0")
-    assert(y_groups > 0, "Y groups must be greater than 0")
-    assert(z_groups > 0, "Z groups must be greater than 0")
+## Opens the communication queue with the GPU
+func list_begin(kernel_index: int = 0) -> void:
+    assert(kernel_index >= 0 and kernel_index < kernels.size(), "Invalid kernel index")
+
+    # Check for hot-reloads
     var global_shader_list = GlobalShaderCompiler.get_compute_kernel_compilations(shader_name)
-    if global_shader_list.is_empty():
-        return
-
-    # Hot-reload check: Rebuild pipelines if the compiler updated the shader
-    var global_shader_id = global_shader_list[0]
-    if shader_id != global_shader_id:
+    if not global_shader_list.is_empty() and shader_id != global_shader_list[0]:
         _load_kernels()
         refresh_uniforms = true
 
-    # Rebuild Uniform Set only if necessary (optimization)
+    _active_compute_list = rd.compute_list_begin()
+    rd.compute_list_bind_compute_pipeline(_active_compute_list, kernels[kernel_index])
+
+
+## Adds work to the open queue
+func list_dispatch(x_groups: int, y_groups: int, z_groups: int) -> void:
+    assert(_active_compute_list != -1, "You must call list_begin() before list_dispatch()")
+
+    # Rebuild Uniform Set only if necessary (textures changed)
     if refresh_uniforms:
         if uniform_set_gpu_id.is_valid():
             rd.free_rid(uniform_set_gpu_id)
-
         var valid_uniforms = uniform_set_cache.filter(func(u): return u != null)
         if shader_id.is_valid():
             uniform_set_gpu_id = rd.uniform_set_create(valid_uniforms, shader_id, 0)
             refresh_uniforms = false
-        else:
-            return
-
-    # Abort if the kernel is invalid
-    assert(
-        kernel_index < kernels.size() and kernels[kernel_index].is_valid(),
-        "Invalid kernel index or kernel RID is not valid.",
-    )
-
-    # Begin dispatch list
-    var compute_list := rd.compute_list_begin()
-    rd.compute_list_bind_compute_pipeline(compute_list, kernels[kernel_index])
 
     if uniform_set_gpu_id.is_valid():
-        rd.compute_list_bind_uniform_set(compute_list, uniform_set_gpu_id, 0)
+        rd.compute_list_bind_uniform_set(_active_compute_list, uniform_set_gpu_id, 0)
 
     if not push_constant.is_empty():
-        rd.compute_list_set_push_constant(compute_list, push_constant, push_constant.size())
+        rd.compute_list_set_push_constant(_active_compute_list, push_constant, push_constant.size())
 
-    # Execute the compute workload
-    rd.compute_list_dispatch(compute_list, x_groups, y_groups, z_groups)
+    rd.compute_list_dispatch(_active_compute_list, x_groups, y_groups, z_groups)
+
+
+## Closes the queue and submits the entire batch to the GPU
+func list_end() -> void:
+    assert(_active_compute_list != -1, "No active compute list to end")
     rd.compute_list_end()
+    _active_compute_list = -1
+
+
+## brush calls of dispatch
+func dispatch(kernel_index: int, x_groups: int, y_groups: int, z_groups: int) -> void:
+    list_begin(kernel_index)
+    list_dispatch(x_groups, y_groups, z_groups)
+    list_end()
 
 # --- Internal Methods ---
 

@@ -5,7 +5,6 @@
 @tool
 extends RefCounted
 
-# smart pointer counter
 class_name MaTexture
 
 var rid: RID

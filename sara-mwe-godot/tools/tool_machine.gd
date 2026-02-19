@@ -19,7 +19,6 @@ var block_brush_until_release: bool = false
 
 
 func _ready() -> void:
-    Engine.max_fps = 120 # hard cap
     # Forces Godot to process every single hardware mouse movement immediately,
     # preventing straight lines during fast curved strokes.
     Input.set_use_accumulated_input(false)
