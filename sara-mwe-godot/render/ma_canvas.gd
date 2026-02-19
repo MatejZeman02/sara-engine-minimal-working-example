@@ -88,9 +88,6 @@ func composite_all_layers() -> void:
     var screen_rect = get_viewport_rect()
     var visible_rect = get_global_transform().affine_inverse() * screen_rect
 
-    # start batch
-    compositor.list_begin(0)
-
     # Iterate through the Document's standard layers
     for child in document.get_children():
         if not child is MaLayer or not child.visible:
@@ -112,8 +109,8 @@ func composite_all_layers() -> void:
             var push_data = PackedFloat32Array([offset_x, offset_y, child.opacity, 0.0])
             compositor.set_push_constant_float_array(push_data)
 
-            # Add to the queue (batching)
-            compositor.list_dispatch(groups, groups, 1)
+            # Automatically begins and ends the queue per chunk
+            compositor.dispatch(0, groups, groups, 1)
 
     # Add the active Stroke Buffer on top
     if document.stroke_layer != null:
@@ -132,10 +129,8 @@ func composite_all_layers() -> void:
             var push_data = PackedFloat32Array([offset_x, offset_y, document.stroke_opacity, 0.0])
             compositor.set_push_constant_float_array(push_data)
 
-            compositor.list_dispatch(groups, groups, 1)
-
-    # fire the entire batch at once
-    compositor.list_end()
+            # Automatically begins and ends the queue per chunk
+            compositor.dispatch(0, groups, groups, 1)
 
     queue_redraw()
 
