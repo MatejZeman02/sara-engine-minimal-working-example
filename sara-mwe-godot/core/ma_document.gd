@@ -1,3 +1,7 @@
+## High-level container for canvas data and layer management.
+##
+## Manages the overall canvas dimensions, the stack of MaLayer objects,
+## and coordinates the temporary stroke buffer for active drawing operations.
 @tool
 extends Node
 

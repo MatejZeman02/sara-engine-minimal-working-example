@@ -1,4 +1,7 @@
-## Holds float _value and its transfer (_gamma) function.
+## Container for values with non-linear transfer curves.
+##
+## Stores a base float and a gamma exponent. Useful for parameters 
+## like brush hardness or flow where linear sliders feel unnatural.
 class_name GammaFloat
 
 var _value: float = 0.0

@@ -1,3 +1,9 @@
+/*
+* Library: Oklab transformations.
+* Provides functions to convert between Linear sRGB and Oklab.
+* Used for perceptually accurate color blending and anti-aliasing.
+*/
+
 // Converts from Oklab to Linear sRGB
 vec3 oklab_to_linear_srgb( vec3 c )
 {

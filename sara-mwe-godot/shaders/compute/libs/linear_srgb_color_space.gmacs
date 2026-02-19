@@ -1,5 +1,10 @@
-// Library to connect the color spaces via the linear srgb color space as an intermediate.
-// This allows switching between color spaces on the fly.
+/*
+* Library: Gamma correction utilities.
+* Handles the conversion between standard sRGB (pickers) and Linear sRGB (math).
+* Ensures light-linear blending to avoid dark fringe artifacts.
+* Library to connect the color spaces via the linear srgb color space as an intermediate.
+* This allows switching between color spaces on the fly.
+*/
 
 #include "oklab_color_space"
 

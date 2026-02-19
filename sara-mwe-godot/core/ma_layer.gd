@@ -1,3 +1,7 @@
+## Chunk-based texture management for an individual canvas layer.
+##
+## Uses a sparse dictionary of 256x256 MaTexture chunks to represent 
+## large drawing areas efficiently in VRAM. Handles per-layer opacity and blending.
 @tool
 extends Node
 

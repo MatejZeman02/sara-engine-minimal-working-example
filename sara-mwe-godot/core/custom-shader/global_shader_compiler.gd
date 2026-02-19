@@ -1,15 +1,19 @@
-# -------------------------------------------------------------------------
-# Sara Brush Engine
-# Copyright (c) 2026 [Matej Zeman]
-#
-# Portions of this compute shader infrastructure are based on the
-# Acerola Compute Wrapper by Acerola (Garrett Gunnell).
-# https://github.com/GarrettGunnell/Acerola-Compute/tree/main
-#
-# This software is released under the MIT License.
-# The license file is in this folder.
-# https://opensource.org/licenses/MIT
-# -------------------------------------------------------------------------
+## -------------------------------------------------------------------------
+## Sara Brush Engine
+## Copyright (c) 2026 [Matej Zeman]
+##
+## Portions of this compute shader infrastructure are based on the
+## Acerola Compute Wrapper by Acerola (Garrett Gunnell).
+## https://github.com/GarrettGunnell/Acerola-Compute/tree/main
+##
+## This software is released under the MIT License.
+## The license file is in this folder.
+## https://opensource.org/licenses/MIT
+## -------------------------------------------------------------------------
+## Runtime manager for custom .gmacs compute shaders.
+##
+## Responsible for reading, resolving #include directives, and compiling
+## text-based shaders into SPIR-V RIDs using RenderingDevice.
 
 @tool
 extends Node

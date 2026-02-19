@@ -1,3 +1,6 @@
+## Navigation logic for scaling the canvas view.
+##
+## Implements smooth vertical-drag zooming centered on the cursor position.
 extends RefCounted
 
 class_name StateZoom

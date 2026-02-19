@@ -1,3 +1,7 @@
+## RAII wrapper for low-level RenderingDevice textures.
+##
+## Manages the lifecycle of a Vulkan texture RID. Automatically frees 
+## VRAM resources when the object is garbage collected.
 @tool
 extends RefCounted
 

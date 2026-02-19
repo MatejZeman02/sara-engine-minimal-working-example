@@ -1,3 +1,7 @@
+## Global signal dispatcher for cross-node communication.
+##
+## Acts as a central hub for decoupled components to communicate without
+## direct references. Primarily handles rendering triggers and UI state updates.
 extends Node
 
 ## Emitted by tools (like StateBrush) when they modify a layer in VRAM.

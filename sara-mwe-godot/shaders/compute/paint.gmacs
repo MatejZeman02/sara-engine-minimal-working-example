@@ -1,3 +1,9 @@
+/*
+* Kernel: paint_dab
+* Performs additive or destructive pixel manipulation on a single chunk.
+* Uses push constants for brush dynamics (pressure, radius, color).
+*/
+
 #include "oklab_color_space"
 #kernel paint
 

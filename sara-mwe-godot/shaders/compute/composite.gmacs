@@ -1,3 +1,8 @@
+/*
+ * Kernel: composite_layers
+ * Flattens multiple source textures into a target canvas texture.
+ * Implements alpha blending and layer visibility logic in parallel.
+ */
 #kernel composite
 
 // Both textures are in set 0, differentiated by binding 0 and 1
@@ -8,7 +13,8 @@ layout( push_constant, std430 ) uniform Params
 {
     vec2 offset;
     float opacity;
-} p;
+}
+p;
 
 [numthreads( 8, 8, 1 )] void composite() {
     // Local coordinates inside the 256x256 chunk
@@ -37,7 +43,6 @@ layout( push_constant, std430 ) uniform Params
     }
 
     src.a *= p.opacity;
-
     vec4 dst = imageLoad( canvas, canvas_coords );
 
     // Standard Porter-Duff Over blending

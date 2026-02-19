@@ -1,15 +1,20 @@
-# -------------------------------------------------------------------------
-# Sara Brush Engine
-# Copyright (c) 2026 [Matej Zeman]
-#
-# Portions of this compute shader infrastructure are based on the
-# Acerola Compute Wrapper by Acerola (Garrett Gunnell).
-# https://github.com/GarrettGunnell/Acerola-Compute/tree/main
-#
-# This software is released under the MIT License.
-# The license file is in this folder.
-# https://opensource.org/licenses/MIT
-# -------------------------------------------------------------------------
+## -------------------------------------------------------------------------
+## Sara Brush Engine
+## Copyright (c) 2026 [Matej Zeman]
+##
+## Portions of this compute shader infrastructure are based on the
+## Acerola Compute Wrapper by Acerola (Garrett Gunnell).
+## https://github.com/GarrettGunnell/Acerola-Compute/tree/main
+##
+## This software is released under the MIT License.
+## The license file is in this folder.
+## https://opensource.org/licenses/MIT
+## -------------------------------------------------------------------------
+##
+## Abstraction layer for dispatching Vulkan compute workloads.
+##
+## Simplifies the process of setting push constants, binding textures,
+## and executing shader kernels via the RenderingDevice.
 
 @tool
 extends RefCounted
@@ -38,8 +43,6 @@ func _init(_shader_name: String) -> void:
     assert(rd != null, "RenderingDevice is null")
     shader_name = _shader_name
     _load_kernels()
-
-# --- Public API ---
 
 
 # Sets push constants from a float array with padding to ensure 16-byte alignment

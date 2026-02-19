@@ -1,3 +1,6 @@
+## Navigation logic for moving the canvas view.
+##
+## Translates mouse relative movement into MaCanvas position offsets.
 extends RefCounted
 
 class_name StatePan

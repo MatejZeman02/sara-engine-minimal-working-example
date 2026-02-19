@@ -1,5 +1,7 @@
-## Manages tool selection (brush/pan/zoom),
-## updates cursor, and routes input events to tool states.
+## Central input router and tool state controller.
+##
+## Switches between Brush, Pan, and Zoom states based on user input.
+## Manages the shared state of the cursor and tablet telemetry.
 extends Node
 
 class_name ToolMachine

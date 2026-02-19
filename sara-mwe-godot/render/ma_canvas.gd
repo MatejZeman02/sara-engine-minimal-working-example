@@ -1,3 +1,7 @@
+## Main UI display node and compositor.
+##
+## A TextureRect that triggers the composite compute shader to flatten
+## all document layers into a single viewable texture on every update signal.
 extends TextureRect
 
 class_name MaCanvas
@@ -14,9 +18,8 @@ var document: MaDocument
 var _needs_composite: bool = false
 
 
+## runs once on start
 func _ready() -> void:
-    Engine.max_fps = 100
-
     stretch_mode = TextureRect.STRETCH_KEEP
     size = canvas_size
     pivot_offset = Vector2.ZERO
@@ -52,6 +55,7 @@ func _ready() -> void:
     EventBus.canvas_needs_composite.connect(_request_composite)
 
 
+## Centers the canvas in the viewport and applies an initial scale to fit it on screen.
 func _center_canvas() -> void:
     var window_size = get_viewport_rect().size
     var scale_factor = min(window_size.x / float(canvas_size.x), window_size.y / float(canvas_size.y))
@@ -70,6 +74,7 @@ func _process(_delta: float) -> void:
         _needs_composite = false
 
 
+## Flattens all visible layers and the active stroke buffer into the canvas texture.
 func composite_all_layers() -> void:
     var rd = RenderingServer.get_rendering_device()
     rd.texture_clear(canvas.rid, Color.TRANSPARENT, 0, 1, 0, 1)
@@ -82,23 +87,22 @@ func composite_all_layers() -> void:
     var groups_y = groups_x
     # Iterate through the Document's standard layers
     for child in document.get_children():
-        if child is MaLayer:
-            if not child.visible:
-                continue
+        # skip invisible
+        if not child is MaLayer or not child.visible:
+            continue
 
-            # Composite each chunk of the layer
-            for grid_pos in child.chunks:
-                var chunk = child.chunks[grid_pos]
-                compositor.set_texture(0, canvas.rid)
-                compositor.set_texture(1, chunk.rid)
+        # Composite each chunk of the layer
+        for grid_pos in child.chunks:
+            var chunk = child.chunks[grid_pos]
+            compositor.set_texture(0, canvas.rid)
+            compositor.set_texture(1, chunk.rid)
 
-                var offset_x = grid_pos.x * chunk_size
-                var offset_y = grid_pos.y * chunk_size
+            var offset_x = grid_pos.x * chunk_size
+            var offset_y = grid_pos.y * chunk_size
 
-                # var push_data = PackedFloat32Array([child.opacity, offset_x, offset_y, 0.0])
-                var push_data = PackedFloat32Array([offset_x, offset_y, child.opacity, 0.0])
-                compositor.set_push_constant_float_array(push_data)
-                compositor.dispatch(0, groups_x, groups_y, 1)
+            var push_data = PackedFloat32Array([offset_x, offset_y, child.opacity])
+            compositor.set_push_constant_float_array(push_data)
+            compositor.dispatch(0, groups_x, groups_y, 1)
 
     # Add the active Stroke Buffer on top of everything while drawing
     if document.stroke_layer != null:
@@ -110,8 +114,7 @@ func composite_all_layers() -> void:
             var offset_x = grid_pos.x * chunk_size
             var offset_y = grid_pos.y * chunk_size
 
-            # var push_data = PackedFloat32Array([document.stroke_opacity, offset_x, offset_y, 0.0])
-            var push_data = PackedFloat32Array([offset_x, offset_y, document.stroke_opacity, 0.0])
+            var push_data = PackedFloat32Array([offset_x, offset_y, document.stroke_opacity])
             compositor.set_push_constant_float_array(push_data)
             compositor.dispatch(0, groups_x, groups_y, 1)
 
