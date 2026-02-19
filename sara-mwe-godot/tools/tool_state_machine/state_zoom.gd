@@ -10,6 +10,7 @@ var is_zooming: bool = false
 var zoom_start_y: float = 0.0
 var zoom_start_scale: Vector2 = Vector2.ONE
 var zoom_start_pos: Vector2 = Vector2.ZERO
+var zoom_sensitivity: float = 4.0
 
 
 ## Resets internal zoom state
@@ -32,12 +33,20 @@ func handle_input(event: InputEvent) -> void:
 
     elif event is InputEventMouseMotion and is_zooming:
         var drag_dist = zoom_start_y - event.global_position.y
-        var zoom_factor = max(0.05, 1.0 + (drag_dist * 0.005))
+        var viewport_size = canvas.get_viewport_rect().size
 
+        # Normalize distance by screen height for resolution independence
+        var normalized_drag = drag_dist / float(viewport_size.y)
+
+        # Use exponential function for smooth, relative zooming at any scale
+        var zoom_factor = exp(normalized_drag * zoom_sensitivity)
         var new_scale = zoom_start_scale * zoom_factor
 
+        # Prevent zooming into infinity/zero
+        new_scale = new_scale.clamp(Vector2(0.01, 0.01), Vector2(100.0, 100.0))
+
         # Find window center in screen coordinates
-        var screen_center = canvas.get_viewport_rect().size / 2.0
+        var screen_center = viewport_size / 2.0
         # Which pixel is currently at the center in canvas local coordinates
         var local_center = (screen_center - zoom_start_pos) / zoom_start_scale
         # Recalculate position

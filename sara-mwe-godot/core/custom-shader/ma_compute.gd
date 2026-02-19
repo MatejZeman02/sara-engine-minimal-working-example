@@ -78,8 +78,6 @@ func set_texture(binding: int, texture_rid: RID) -> void:
     u.add_id(texture_rid)
     _cache_uniform(u)
 
-# --- BATCHING API ---
-
 ## Opens the communication queue with the GPU
 func list_begin(kernel_index: int = 0) -> void:
     assert(kernel_index >= 0 and kernel_index < kernels.size(), "Invalid kernel index")
@@ -123,7 +121,7 @@ func list_end() -> void:
     _active_compute_list = -1
 
 
-## brush calls of dispatch
+## brush calls of dispatch (no batching)
 func dispatch(kernel_index: int, x_groups: int, y_groups: int, z_groups: int) -> void:
     list_begin(kernel_index)
     list_dispatch(x_groups, y_groups, z_groups)
