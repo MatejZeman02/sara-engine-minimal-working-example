@@ -70,11 +70,6 @@ func reset() -> void:
     compute = MaCompute.new("paint")
 
 
-## Converts raw hardware screen coordinates directly to texture pixels
-func _get_event_local_pos(event: InputEvent) -> Vector2:
-    return canvas.get_global_transform().affine_inverse() * event.global_position
-
-
 ## Heuristics to bypass the Wayland "device 0" bug by analyzing raw telemetry
 func _analyze_pointer_type(event: InputEvent) -> void:
     if event is InputEventMouseMotion:
@@ -83,8 +78,8 @@ func _analyze_pointer_type(event: InputEvent) -> void:
             is_tablet = true
             _mouse_motion_streak = 0
 
-            # Catch hover pressure: If the driver sends a motion event with pressure
-            # *just before* the click event: save it to avoid a 0.0 pressure start
+            # Catch hover pressure: if the driver sends a motion event with pressure
+            # just before the click event: save it to avoid a 0.0 pressure start
             if not is_drawing and event.pressure > 0.0:
                 last_pressure = event.pressure
         else:
@@ -97,7 +92,7 @@ func _analyze_pointer_type(event: InputEvent) -> void:
 func _handle_stroke_state(event: InputEventMouseButton) -> void:
     if event.pressed:
         is_drawing = true
-        last_mouse_pos = _get_event_local_pos(event)
+        last_mouse_pos = canvas.get_local_mouse_position()
         leftover_distance = 0.0
         canvas.document.stroke_opacity = opacity
 
@@ -114,7 +109,7 @@ func _handle_stroke_state(event: InputEventMouseButton) -> void:
 
 
 func _handle_stroke_motion(event: InputEventMouseMotion) -> void:
-    var tex_pos = _get_event_local_pos(event)
+    var tex_pos = canvas.get_local_mouse_position()
 
     # Read raw pressure (force 1.0 if using mouse)
     var raw_pressure = event.pressure if is_tablet else 1.0

@@ -127,6 +127,13 @@ func composite_all_layers() -> void:
     queue_redraw()
 
 
+## safe device independent way to get mouse position
+func get_mouse_local_position() -> Vector2:
+    assert(canvas != null, "canvas cannot be null")
+    # automatically applies inverse transform of pan and zoom:
+    # canvas.get_global_transform().affine_inverse() * event.global_position
+    return self.get_local_mouse_position()
+
 ## Safely clear VRAM references before Godot destroys the RenderingDevice
 func _exit_tree() -> void:
     canvas = null

@@ -84,6 +84,10 @@ func _input(event: InputEvent) -> void:
         if canvas.document.undo_redo.has_redo():
             canvas.document.undo_redo.redo()
 
+    # [DEBUG] Exit application with Esc or Ctrl+Q key for fast testing
+    if event.is_action_pressed("ui_quit") or (event.is_action_pressed("ui_cancel")):
+        get_tree().quit()
+
 
 ## Dynamically changes the cursor of the canvas node itself
 func _update_cursor() -> void:
