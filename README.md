@@ -1,5 +1,9 @@
 # SARA Brush Engine (Minimal Working Example)
 
+<p align="center">
+  <img src="sara-mwe-godot/ui/icon.svg" alt="icon" width="20%" />
+</p>
+
 Welcome to the Minimal Working Example (MWE) of **Sara**, a custom, high-performance raster brush engine built from scratch in **Godot 4.6 (Stable)**.
 
 This repository serves as a proof-of-concept for migrating traditional, CPU-heavy drawing operations (like those found in Krita or Photoshop) into a pure GPU-first pipeline using Vulkan Compute Shaders. By keeping the active canvas entirely in VRAM and calculating brush interpolation, pressure, and blending on the GPU, we achieve massive performance gains for large canvases and complex brushes.

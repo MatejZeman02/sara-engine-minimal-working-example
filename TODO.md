@@ -9,7 +9,7 @@
 - [ ] Eraser mode
 - [ ] Eyedropper/color picker
 - [x] Pan and Zoom
-- [ ] Undo / Redo:
+- [x] Undo / Redo (for brush)
 - [ ] Clear Canvas / Fill Canvas
 - [x] layers (opacity, hide)
   - [ ] layer lock (alpha, painting)
