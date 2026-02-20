@@ -1,6 +1,6 @@
 ## RAII wrapper for low-level RenderingDevice textures.
 ##
-## Manages the lifecycle of a Vulkan texture RID. Automatically frees 
+## Manages the lifecycle of a Vulkan texture RID. Automatically frees
 ## VRAM resources when the object is garbage collected.
 @tool
 extends RefCounted
@@ -10,6 +10,7 @@ class_name MaTexture
 var rid: RID
 var size: Vector2i
 var rd: RenderingDevice
+
 
 ## _size: Vector2i - dimensions of the texture
 ## format_bits: int - optional, specify the data format (default is RGBA32F)
@@ -45,7 +46,7 @@ func _init(_size: Vector2i, format_bits: int = RenderingDevice.DATA_FORMAT_R32G3
 ## Automatic cleanup (Destructor)
 func _notification(what):
     if what == NOTIFICATION_PREDELETE:
-        # Simply free the RID when the object is destroyed
+        # free the RID when the object is destroyed
         if rid.is_valid() and rd != null:
             rd.free_rid(rid)
-            rid = RID() # Reset the RID to an invalid state after freeing it
+            rid = RID() # reset RID to an invalid state

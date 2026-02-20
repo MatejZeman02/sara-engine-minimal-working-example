@@ -18,10 +18,18 @@ var stroke_opacity: float = 1.0
 var bottom_cache: MaLayer
 var top_cache: MaLayer
 
+# --- HISTORY ---
+var undo_redo: UndoRedo
+## limits max history states
+const MAX_UNDO: int = 32
+
 
 ## Creates a default new file: A solid gray background and an empty transparent paint layer
 func setup_default_document(size: Vector2i) -> void:
+    assert(size.x > 0 and size.y > 0, "Canvas size must be strictly positive")
     canvas_size = size
+    undo_redo = UndoRedo.new()
+    undo_redo.max_steps = MAX_UNDO
 
     # Background Layer (Solid Gray)
     var bg_layer = MaLayer.new()
@@ -40,7 +48,6 @@ func setup_default_document(size: Vector2i) -> void:
     # Stroke Buffer (Temporary scratchpad, explicitly NOT added as a child)
     stroke_layer = MaLayer.new()
     stroke_layer.name = "StrokeBuffer"
-
     # Note: intentionally DO NOT call setup() on the stroke layer.
     # We want it to be completely empty and only allocate chunks exactly where the brush touches
 
@@ -65,7 +72,7 @@ func update_caches(visible_rect: Rect2) -> void:
     assert(bottom_cache != null, "bottom_cache must be initialized")
     assert(top_cache != null, "top_cache must be initialized")
     assert(active_layer != null, "active_layer must be set")
-    assert(visible_rect != Rect2(), "visible_rect isn't valid")
+
     if bottom_cache == null or top_cache == null or active_layer == null:
         return
 
@@ -93,12 +100,19 @@ func update_caches(visible_rect: Rect2) -> void:
         var top_chunk = top_cache.get_or_create_chunk(grid_pos)
         rd.texture_clear(top_chunk.rid, Color.TRANSPARENT, 0, 1, 0, 1)
 
-    # Iterate through all children and bake them into the appropriate cache
     var is_above_active = false
 
     for child in get_children():
-        if not child is MaLayer or child == active_layer or not child.visible:
-            # Skip the active/hidden layer
+        # if not layer or invisible
+        if not child is MaLayer:
+            continue
+
+        if child == active_layer:
+            # Skip the active layer
+            is_above_active = true
+            continue
+
+        if not child.visible:
             continue
 
         # Determine target cache based on the layer's position relative to the active layer
@@ -119,15 +133,23 @@ func update_caches(visible_rect: Rect2) -> void:
             # The structure remains: vec2 offset, float opacity, float pad
             var push_data = PackedFloat32Array([0.0, 0.0, child.opacity, 0.0])
             compositor.set_push_constant_float_array(push_data)
-
             compositor.dispatch(0, groups, groups, 1)
 
 
-## Bakes the temporary stroke chunks into the active layer chunks and clears the scratchpad
+## Bakes the temporary stroke chunks into the active layer and records History
 func commit_stroke() -> void:
-    if stroke_layer == null or active_layer == null:
+    assert(stroke_layer != null, "stroke_layer cannot be null during commit")
+    assert(active_layer != null, "active_layer cannot be null during commit")
+    if stroke_layer == null or active_layer == null or stroke_layer.chunks.is_empty():
         return
 
+    # Gather Undo state (before modifying the layer)
+    var undo_data: Dictionary = { }
+    for grid_pos in stroke_layer.chunks:
+        # duplicate_chunk automatically handles null if the chunk didn't exist yet
+        undo_data[grid_pos] = active_layer.duplicate_chunk(grid_pos)
+
+    # Bake the stroke
     var compositor = MaCompute.new("composite")
 
     # Iterate only through the chunks that were drawn on during the stroke
@@ -145,23 +167,59 @@ func commit_stroke() -> void:
         # Offset is (0, 0) because we are compositing a 256x256 chunk exactly onto another 256x256 chunk.
         # var push_data = PackedFloat32Array([stroke_opacity, 0.0, 0.0, 0.0])
 
-        # Offset je (0, 0), protože zapékáme 256x256 chunk přesně na jiný 256x256 chunk.
-        # Pořadí je: Offset X, Offset Y, Opacity, Pad
+        # Offset is (0, 0) because we are baking a 256x256 chunk exactly onto another 256x256 chunk.
+        # Order is: Offset X, Offset Y, Opacity, Pad
         var push_data = PackedFloat32Array([0.0, 0.0, stroke_opacity, 0.0])
         compositor.set_push_constant_float_array(push_data)
 
         # Dispatch for the 256x256 chunk (256 / 8 = 32 groups)
         compositor.dispatch(0, 32, 32, 1)
 
-    # Clear the scratchpad chunks for the next stroke, automatically freeing VRAM
-    stroke_layer.chunks.clear()
+    # Gather redo state (after modifying the layer)
+    var redo_data: Dictionary = { }
+    for grid_pos in stroke_layer.chunks:
+        redo_data[grid_pos] = active_layer.duplicate_chunk(grid_pos)
 
+    # Register the Undo/Redo mnager
+    undo_redo.create_action("Brush Stroke")
+    # use bind() to pass arguments to the method
+    undo_redo.add_do_method(_apply_chunk_data.bind(active_layer, redo_data))
+    undo_redo.add_undo_method(_apply_chunk_data.bind(active_layer, undo_data))
+    undo_redo.commit_action(false) # 'false' means don't execute 'do' right now
+
+    # Clear the scratchpad
+    stroke_layer.chunks.clear()
     # Force the display to update with the newly baked layer
+    EventBus.canvas_needs_composite.emit()
+
+
+## Internal function used exclusively by the UndoRedo manager to swap chunks in VRAM
+func _apply_chunk_data(layer: MaLayer, data: Dictionary) -> void:
+    assert(layer != null, "Target layer for Undo/Redo cannot be null")
+
+    for grid_pos in data:
+        var source_texture = data[grid_pos]
+        if source_texture == null:
+            # If the chunk didn't exist in history, erase it from the canvas
+            layer.set_chunk(grid_pos, null)
+        else:
+            # create a copy so the history backup remains untouched in VRAM
+            var restored_chunk = layer.create_texture_copy(source_texture)
+            layer.set_chunk(grid_pos, restored_chunk)
+
     EventBus.canvas_needs_composite.emit()
 
 
 ## Cleanup
 func _exit_tree() -> void:
+    # Clear history first to safely free all backup MaTextures in VRAM
+    if undo_redo != null:
+        undo_redo.clear_history()
+        # UndoRedo inherits from Object (not RefCounted)
+        undo_redo.free()
+        undo_redo = null
+
+    # Free canvas layers
     if is_instance_valid(stroke_layer):
         stroke_layer.free()
     if is_instance_valid(bottom_cache):

@@ -1,6 +1,6 @@
 ## Chunk-based texture management for an individual canvas layer.
 ##
-## Uses a sparse dictionary of 256x256 MaTexture chunks to represent 
+## Uses a sparse dictionary of 256x256 MaTexture chunks to represent
 ## large drawing areas efficiently in VRAM. Handles per-layer opacity and blending.
 @tool
 extends Node
@@ -70,3 +70,42 @@ func _notification(what: int) -> void:
         # MaTextures are RefCounted. Clearing the dictionary drops their reference counts to 0,
         # safely triggering their own deletion.
         chunks.clear()
+
+
+## Creates VRAM copy of an existing chunk for Undo/Redo backups.
+## Returns null if the chunk doesn't exist yet (meaning the undo state is empty).
+func duplicate_chunk(grid_pos: Vector2i) -> MaTexture:
+    if not chunks.has(grid_pos):
+        return null
+    return create_texture_copy(chunks[grid_pos])
+
+
+## Replaces a specific chunk with provided texture data (used by UndoRedo).
+## If new_chunk is null, it removes the chunk completely.
+func set_chunk(grid_pos: Vector2i, new_chunk: MaTexture) -> void:
+    if new_chunk == null:
+        chunks.erase(grid_pos)
+    else:
+        chunks[grid_pos] = new_chunk
+
+
+## Creates a VRAM copy of a provided MaTexture (for undo history)
+func create_texture_copy(original: MaTexture) -> MaTexture:
+    if original == null:
+        return null
+
+    var copy_chunk = MaTexture.new(Vector2i(CHUNK_SIZE, CHUNK_SIZE))
+    var rd = RenderingServer.get_rendering_device()
+
+    rd.texture_copy(
+        original.rid,
+        copy_chunk.rid,
+        Vector3(0, 0, 0),
+        Vector3(0, 0, 0),
+        Vector3(CHUNK_SIZE, CHUNK_SIZE, 1),
+        0,
+        0,
+        0,
+        0,
+    )
+    return copy_chunk

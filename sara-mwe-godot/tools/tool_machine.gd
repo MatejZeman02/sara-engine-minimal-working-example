@@ -32,7 +32,9 @@ func _ready() -> void:
     _update_cursor()
 
 
+## Called by MaDocument whenever layers change to update the caches for the visible area.
 func _input(event: InputEvent) -> void:
+    assert(canvas != null and canvas.document != null, "Canvas document missing")
     var is_space = Input.is_key_pressed(KEY_SPACE)
     var is_ctrl = Input.is_key_pressed(KEY_CTRL)
     var is_mouse_down = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
@@ -71,6 +73,16 @@ func _input(event: InputEvent) -> void:
             pan_state.handle_input(event)
         ToolType.ZOOM:
             zoom_state.handle_input(event)
+
+    # Global undo/redo listeners:
+    # arg 2 (allow_echo): true allows holding down the key to repeat
+    # arg 3 (exact_match): true prevents ctrl+shift+z from triggering ctrl+z
+    if event.is_action_pressed("ui_undo", true, true):
+        if canvas.document.undo_redo.has_undo():
+            canvas.document.undo_redo.undo()
+    elif event.is_action_pressed("ui_redo", true, true):
+        if canvas.document.undo_redo.has_redo():
+            canvas.document.undo_redo.redo()
 
 
 ## Dynamically changes the cursor of the canvas node itself
