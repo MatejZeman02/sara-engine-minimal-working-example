@@ -11,7 +11,7 @@ var canvas: MaCanvas
 var compute: MaCompute
 
 # --- BRUSH SETTINGS ---
-var radius: float = 25 # 2x radius is diameter (px)
+var radius: float = 0.02314814815 # 2x radius is diameter (% proportional to the canvas lower dimension)
 var hardness: GammaFloat = GammaFloat.new(.0, 1.) # hard/soft edge
 var opacity: float = 1. # maximum opacity per stroke
 var flow: GammaFloat = GammaFloat.new(1., 2.4) # strength per dab/stamp
@@ -131,9 +131,17 @@ func _get_normalized_pressure(raw_pressure: float) -> float:
     return pow(normalized, pressure_gamma)
 
 
+## calculates radius of the brush based on the canvas size and pressure
+func _calculate_actual_radius(pressure: float) -> float:
+    var min_dimension = min(canvas.canvas_size.x, canvas.canvas_size.y)
+    var base_radius = radius * min_dimension
+    var ar = max(0.05, base_radius * (pressure if size_by_pressure else 1.0))
+    return ar
+
+
 # Handles the complex distance and stepping logic
 func _process_stroke_interpolation(tex_pos: Vector2, current_pressure: float) -> void:
-    var current_actual_radius = max(0.1, radius * (current_pressure if size_by_pressure else 1.0))
+    var current_actual_radius = _calculate_actual_radius(current_pressure)
     var step_size = max(current_actual_radius * 2.0 * spacing, 1.0)
 
     if last_mouse_pos != -Vector2.ONE:
@@ -163,7 +171,7 @@ func _process_stroke_interpolation(tex_pos: Vector2, current_pressure: float) ->
 
 ## Calculates dynamic pressure modifiers and dispatches a single dab to the GPU
 func _stamp_brush(pos: Vector2, pressure: float) -> void:
-    var actual_radius = max(0.1, radius * (pressure if size_by_pressure else 1.0))
+    var actual_radius = _calculate_actual_radius(pressure)
     var stroke_color = color
     stroke_color.a = flow.transf() * (pressure if opacity_by_pressure else 1.0)
 
